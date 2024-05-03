@@ -1,18 +1,30 @@
 #!/usr/bin/env bash
+# Display information about subdomains
+# shellcheck disable=SC2086
 
-#shellcheck disable=SC2086
-# Information about server domains
+get_subdomain_spec () {
 
-check_domain() {
-    # Check for a valid domain
-    SUBDOMAINS=("www"  "lb-01" "web-01" "web-02")
-    if [ -z "$2" ]; then
-	for i in "${SUBDOMAINS[@]}"; do
-	    dig "$i.$1" | grep -A1 'ANSWER SECTION:' | tail -n1 | awk '{split($0, SUBDOMAIN, "."); print "The subdomain " SUBDOMAIN[1] " is a " $4 " record and points to " $5}'
-	done
-    else
-	dig "$2.$1" | grep -A1 'ANSWER SECTION:' | tail -n1 | awk '{split($0, SUBDOMAIN, "."); print "The subdomain " SUBDOMAIN[1] " is a " $4 " record and points to " $5}'
-    fi
+	dig $2.$1 | awk 'c&&!--c;/;; ANSWER SECTION:/{c=1}' | awk -v subdom=$2 '{ print "The subdomain " subdom " is a " $4 " record and points to " $5}'
+
+	return 0
 }
 
-check_domain "$1" "$2"
+get_subdomain_all () {
+
+	subdomains=("www" "lb-01" "web-01" "web-02")
+		
+	for subdomain in "${subdomains[@]}"
+	do
+		dig $subdomain.$1 | awk 'c&&!--c;/;; ANSWER SECTION:/{c=1}' | awk -v subdom="$subdomain" '{ print "The subdomain " subdom " is a " $4 " record and points to " $5}'
+	done
+
+	return 0
+}
+
+# determine how many args passed
+if [ -z $2 ]
+then
+	get_subdomain_all "$1"
+else
+	get_subdomain_spec "$1" "$2"
+fi
